@@ -41,14 +41,17 @@ class ImageMaskEditor:
         self.canvas.bind("<B3-Motion>", self.erase)
         self.canvas.bind("<MouseWheel>", self.zoom_image)
 
-        prev_img_btn = Button(master, text="Previous Image", command=self.load_previous_image)
+        prev_img_btn = Button(master, text="Previous", command=self.load_previous_image)
         prev_img_btn.pack(side=LEFT)
 
-        next_img_btn = Button(master, text="Next Image", command=self.load_next_image)
+        next_img_btn = Button(master, text="Next", command=self.load_next_image)
         next_img_btn.pack(side=LEFT)
         
-        jump_to_img_btn = Button(master, text="Jump to Image", command=self.jump_to_image)
+        jump_to_img_btn = Button(master, text="Jump to", command=self.jump_to_image)
         jump_to_img_btn.pack(side=LEFT)
+
+        delete_btn = Button(master, text="Delete", command=self.delete_image)
+        delete_btn.pack(side=LEFT)
         
         opacity_scale = Scale(master, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, label="Opacity", command=self.update_opacity)
         opacity_scale.set(self.opacity)
@@ -74,11 +77,8 @@ class ImageMaskEditor:
         eraser_btn = Button(master, text="Erase", command=self.toggle_eraser)
         eraser_btn.pack(side=LEFT)
 
-        save_btn = Button(master, text="Save Mask", command=self.save_mask)
+        save_btn = Button(master, text="Save", command=self.save_mask)
         save_btn.pack(side=LEFT)
-
-        delete_btn = Button(master, text="Delete", command=self.delete_image)
-        delete_btn.pack(side=LEFT)
 
     def set_pen_thickness(self, size):
         self.pen_thickness = size
@@ -86,7 +86,7 @@ class ImageMaskEditor:
         self.status_label.config(text=f"Pen size set to {size}")
 
     def jump_to_image(self):
-        num = simpledialog.askinteger("Jump to Image", "Enter Image Number", parent=self.master, minvalue=1, maxvalue=len(self.image_files))
+        num = simpledialog.askinteger("Jump to", "Enter Image Number", parent=self.master, minvalue=1, maxvalue=len(self.image_files))
         if num is not None:
             self.current_image_index = num - 1  # Convert to zero-based index
             self.load_image(0) 
