@@ -29,6 +29,9 @@ class ImageMaskEditor:
         self.status_label = Label(master, text="")
         self.status_label.pack(side=BOTTOM)
 
+        self.image_number_label = Label(master, text="")
+        self.image_number_label.pack(side=BOTTOM)
+
         self.canvas = Canvas(master, cursor="cross")
         self.canvas.pack(fill=BOTH, expand=True)
 
@@ -52,11 +55,20 @@ class ImageMaskEditor:
         thickness_scale.set(self.pen_thickness)
         thickness_scale.pack(side=LEFT)
 
+        # Pen size selection buttons
+        for size in [1, 3, 5, 10, 20]:
+            btn = Button(master, text=str(size), command=lambda s=size: self.set_pen_thickness(s))
+            btn.pack(side=LEFT)
+
         color_btn = Button(master, text="Choose Pen Color", command=self.choose_pen_color)
         color_btn.pack(side=LEFT)
 
         save_btn = Button(master, text="Save Mask", command=self.save_mask)
         save_btn.pack(side=LEFT)
+
+    def set_pen_thickness(self, size):
+        self.pen_thickness = size
+        self.status_label.config(text=f"Pen size set to {size}")
 
     def load_image(self, index_change):
         new_index = self.current_image_index + index_change
@@ -71,6 +83,7 @@ class ImageMaskEditor:
                 self.mask = Image.open(self.mask_path).convert("L") if os.path.exists(self.mask_path) else Image.new("L", self.image.size, 0)
                 self.display_image()
                 self.master.title(f"Image Mask Editor - {image_file}")
+                self.image_number_label.config(text=f"{self.current_image_index + 1}/{len(self.image_files)}")
             else:
                 messagebox.showinfo("Info", "No more images in the directory.")
         else:
@@ -93,26 +106,21 @@ class ImageMaskEditor:
         color = colorchooser.askcolor(color=self.pen_color)[1]
         if color:
             self.pen_color = color
-            self.erasing = False
 
     def zoom_image(self, event):
         if event.delta > 0:
             self.zoom *= 1.1
         elif event.delta < 0:
             self.zoom /= 1.1
-
         self.display_image()
 
     def display_image(self):
         if self.image and self.mask:
             resized_image = self.image.resize((int(self.image.width * self.zoom), int(self.image.height * self.zoom)), Image.Resampling.LANCZOS)
             resized_mask = self.mask.resize((int(self.mask.width * self.zoom), int(self.mask.height * self.zoom)), Image.Resampling.LANCZOS)
-            
             mask_rgba = ImageOps.colorize(resized_mask, (0, 0, 0), (255, 255, 255))
             mask_rgba.putalpha(int(self.opacity * 255))
-
             self.result = Image.alpha_composite(resized_image.convert("RGBA"), mask_rgba)
-
             self.tk_image = ImageTk.PhotoImage(self.result)
             self.canvas.config(width=self.tk_image.width(), height=self.tk_image.height())
             self.canvas.create_image(0, 0, anchor=NW, image=self.tk_image)
@@ -122,22 +130,12 @@ class ImageMaskEditor:
         self.drawing = True
         self.erasing = False
         self.last_x, self.last_y = event.x, event.y
-    
+
     def start_erase(self, event):
         self.erasing = True
         self.drawing = False
         self.last_x, self.last_y = event.x, event.y
-    
-    def draw_or_erase(self, event, color):
-        if self.last_x is not None and self.last_y is not None:
-            draw = ImageDraw.Draw(self.mask)
-            r = max(self.pen_thickness // 2, 1)  # Ensure minimum radius is 1
-            x0, y0 = (event.x / self.zoom - r, event.y / self.zoom - r)
-            x1, y1 = (event.x / self.zoom + r, event.y / self.zoom + r)
-            draw.ellipse([x0, y0, x1, y1], fill=color, outline=color)
-            self.display_image()
-        self.last_x, self.last_y = event.x, event.y
-        
+
     def draw(self, event):
         if self.drawing and self.mask:
             self.draw_or_erase(event, self.pen_color)
@@ -145,6 +143,16 @@ class ImageMaskEditor:
     def erase(self, event):
         if self.erasing and self.mask:
             self.draw_or_erase(event, self.eraser_color)
+
+    def draw_or_erase(self, event, color):
+        if self.last_x is not None and self.last_y is not None:
+            draw = ImageDraw.Draw(self.mask)
+            r = max(self.pen_thickness // 2, 1)
+            x0, y0 = (event.x / self.zoom - r, event.y / self.zoom - r)
+            x1, y1 = (event.x / self.zoom + r, event.y / self.zoom + r)
+            draw.ellipse([x0, y0, x1, y1], fill=color, outline=color)
+            self.display_image()
+        self.last_x, self.last_y = event.x, event.y
 
     def save_mask(self):
         if self.mask and self.mask_path:
