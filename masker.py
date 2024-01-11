@@ -1,6 +1,6 @@
 import os
 from tkinter import *
-from tkinter import filedialog, colorchooser, messagebox
+from tkinter import filedialog, colorchooser, messagebox, simpledialog
 from PIL import Image, ImageTk, ImageDraw, ImageOps
 
 class ImageMaskEditor:
@@ -12,7 +12,7 @@ class ImageMaskEditor:
         self.mask_directory = filedialog.askdirectory(title="Select Mask Directory")
         self.image_files = sorted(os.listdir(self.rgb_directory)) if self.rgb_directory else []
         self.current_image_index = -1
-
+        
         self.image = None
         self.mask = None
         self.mask_path = None
@@ -46,31 +46,103 @@ class ImageMaskEditor:
 
         next_img_btn = Button(master, text="Next Image", command=self.load_next_image)
         next_img_btn.pack(side=LEFT)
-
+        
+        jump_to_img_btn = Button(master, text="Jump to Image", command=self.jump_to_image)
+        jump_to_img_btn.pack(side=LEFT)
+        
         opacity_scale = Scale(master, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, label="Opacity", command=self.update_opacity)
         opacity_scale.set(self.opacity)
         opacity_scale.pack(side=LEFT)
 
-        thickness_scale = Scale(master, from_=1, to=20, orient=HORIZONTAL, label="Pen Thickness", command=self.update_thickness)
-        thickness_scale.set(self.pen_thickness)
-        thickness_scale.pack(side=LEFT)
+                # Thickness Scale
+        self.thickness_scale = Scale(master, from_=1, to=20, orient=HORIZONTAL, label="Pen Thickness", command=self.update_thickness)
+        self.thickness_scale.set(self.pen_thickness)
+        self.thickness_scale.pack(side=LEFT)
 
+        if self.image_files:
+            self.current_image_index = 0
+            self.load_image(0)
+            
         # Pen size selection buttons
         for size in [1, 3, 5, 10, 20]:
             btn = Button(master, text=str(size), command=lambda s=size: self.set_pen_thickness(s))
             btn.pack(side=LEFT)
 
-        # Big pen size button
         big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
         big_btn.pack(side=LEFT)
+        
+        eraser_btn = Button(master, text="Erase", command=self.toggle_eraser)
+        eraser_btn.pack(side=LEFT)
 
         save_btn = Button(master, text="Save Mask", command=self.save_mask)
         save_btn.pack(side=LEFT)
 
+        delete_btn = Button(master, text="Delete", command=self.delete_image)
+        delete_btn.pack(side=LEFT)
+
     def set_pen_thickness(self, size):
         self.pen_thickness = size
+        self.thickness_scale.set(size)  # Update the slider position
         self.status_label.config(text=f"Pen size set to {size}")
 
+    def jump_to_image(self):
+        num = simpledialog.askinteger("Jump to Image", "Enter Image Number", parent=self.master, minvalue=1, maxvalue=len(self.image_files))
+        if num is not None:
+            self.current_image_index = num - 1  # Convert to zero-based index
+            self.load_image(0) 
+            
+    def delete_image(self):
+        if self.current_image_index >= 0 and self.current_image_index < len(self.image_files):
+            rgb_path = os.path.join(self.rgb_directory, self.image_files[self.current_image_index])
+            mask_path = os.path.join(self.mask_directory, self.image_files[self.current_image_index])
+
+            # Delete the files if they exist
+            if os.path.exists(rgb_path):
+                os.remove(rgb_path)
+            if os.path.exists(mask_path):
+                os.remove(mask_path)
+
+            # Remove the filename from the list and update the index
+            del self.image_files[self.current_image_index]
+            self.current_image_index -= 1
+            self.load_next_image()  # Load next image or update display if no more images
+
+            self.status_label.config(text="Image and mask deleted.")
+        else:
+            self.status_label.config(text="No image to delete.")
+
+    def toggle_eraser(self):
+        self.erasing = not self.erasing
+        if self.erasing:
+            # In Erase mode, left click to erase, right click to draw
+            self.canvas.bind("<ButtonPress-1>", self.start_erase)
+            self.canvas.bind("<B1-Motion>", self.erase)
+            self.canvas.bind("<ButtonPress-3>", self.start_draw)
+            self.canvas.bind("<B3-Motion>", self.draw)
+            self.status_label.config(text="Mode: Erase")
+        else:
+            # In Draw mode, left click to draw, right click to erase
+            self.canvas.bind("<ButtonPress-1>", self.start_draw)
+            self.canvas.bind("<B1-Motion>", self.draw)
+            self.canvas.bind("<ButtonPress-3>", self.start_erase)
+            self.canvas.bind("<B3-Motion>", self.erase)
+            self.status_label.config(text="Mode: Draw")
+    def start_draw(self, event):
+        self.drawing = True
+        self.last_x, self.last_y = event.x, event.y
+
+    def draw(self, event):
+        if self.drawing and self.mask:
+            self.draw_or_erase(event, self.pen_color)
+
+    def start_erase(self, event):
+        self.drawing = True
+        self.last_x, self.last_y = event.x, event.y
+
+    def erase(self, event):
+        if self.drawing and self.mask:
+            self.draw_or_erase(event, self.eraser_color)
+         
     def load_image(self, index_change):
         new_index = self.current_image_index + index_change
         if 0 <= new_index < len(self.image_files):
@@ -121,24 +193,6 @@ class ImageMaskEditor:
             self.canvas.config(width=self.tk_image.width(), height=self.tk_image.height())
             self.canvas.create_image(0, 0, anchor=NW, image=self.tk_image)
             self.canvas.image = self.tk_image
-
-    def start_draw(self, event):
-        self.drawing = True
-        self.erasing = False
-        self.last_x, self.last_y = event.x, event.y
-
-    def start_erase(self, event):
-        self.erasing = True
-        self.drawing = False
-        self.last_x, self.last_y = event.x, event.y
-
-    def draw(self, event):
-        if self.drawing and self.mask:
-            self.draw_or_erase(event, self.pen_color)
-
-    def erase(self, event):
-        if self.erasing and self.mask:
-            self.draw_or_erase(event, self.eraser_color)
 
     def draw_or_erase(self, event, color):
         if self.last_x is not None and self.last_y is not None:
