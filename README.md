@@ -9,3 +9,6 @@ The Image Annotation AI Tool is designed for ease of use and convenience. It req
 ## Usage
 
 To use the application, run the executable and specify the directories for RGB images and their corresponding Masks. It is important to ensure that each RGB image and its mask share the same filename. Upon specifying the directories, the application will sequentially load each image-mask pair for annotation. The tool allows users to directly overwrite and save changes to the masks as modifications are made.
+
+## Demo
+![Usage tutorial.](https://github.com/mohsenumn/image_annotation_ai_tool/raw/main/supplementary/demo.gif "Demo")
