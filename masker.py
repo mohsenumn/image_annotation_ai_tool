@@ -8,13 +8,11 @@ class ImageMaskEditor:
         self.master = master
         master.title("Image Mask Editor")
 
-        # Initialize directories and image list
         self.rgb_directory = filedialog.askdirectory(title="Select RGB Image Directory")
         self.mask_directory = filedialog.askdirectory(title="Select Mask Directory")
         self.image_files = sorted(os.listdir(self.rgb_directory)) if self.rgb_directory else []
         self.current_image_index = -1
 
-        # Initialize variables
         self.image = None
         self.mask = None
         self.mask_path = None
@@ -31,16 +29,15 @@ class ImageMaskEditor:
         self.status_label = Label(master, text="")
         self.status_label.pack(side=BOTTOM)
 
-        # UI elements
         self.canvas = Canvas(master, cursor="cross")
         self.canvas.pack(fill=BOTH, expand=True)
 
-        # Mouse events
         self.canvas.bind("<ButtonPress-1>", self.start_draw)
         self.canvas.bind("<B1-Motion>", self.draw)
+        self.canvas.bind("<ButtonPress-3>", self.start_erase)
+        self.canvas.bind("<B3-Motion>", self.erase)
         self.canvas.bind("<MouseWheel>", self.zoom_image)
 
-        # Buttons
         prev_img_btn = Button(master, text="Previous Image", command=self.load_previous_image)
         prev_img_btn.pack(side=LEFT)
 
@@ -57,9 +54,6 @@ class ImageMaskEditor:
 
         color_btn = Button(master, text="Choose Pen Color", command=self.choose_pen_color)
         color_btn.pack(side=LEFT)
-
-        eraser_btn = Button(master, text="Eraser", command=self.toggle_eraser)
-        eraser_btn.pack(side=LEFT)
 
         save_btn = Button(master, text="Save Mask", command=self.save_mask)
         save_btn.pack(side=LEFT)
@@ -87,6 +81,7 @@ class ImageMaskEditor:
 
     def load_previous_image(self):
         self.load_image(-1)
+
     def update_opacity(self, value):
         self.opacity = float(value)
         self.display_image()
@@ -99,9 +94,6 @@ class ImageMaskEditor:
         if color:
             self.pen_color = color
             self.erasing = False
-
-    def toggle_eraser(self):
-        self.erasing = not self.erasing
 
     def zoom_image(self, event):
         if event.delta > 0:
@@ -116,11 +108,9 @@ class ImageMaskEditor:
             resized_image = self.image.resize((int(self.image.width * self.zoom), int(self.image.height * self.zoom)), Image.Resampling.LANCZOS)
             resized_mask = self.mask.resize((int(self.mask.width * self.zoom), int(self.mask.height * self.zoom)), Image.Resampling.LANCZOS)
             
-            # Create an RGBA version of the mask with the specified opacity
             mask_rgba = ImageOps.colorize(resized_mask, (0, 0, 0), (255, 255, 255))
             mask_rgba.putalpha(int(self.opacity * 255))
 
-            # Composite the mask over the image
             self.result = Image.alpha_composite(resized_image.convert("RGBA"), mask_rgba)
 
             self.tk_image = ImageTk.PhotoImage(self.result)
@@ -129,25 +119,38 @@ class ImageMaskEditor:
             self.canvas.image = self.tk_image
 
     def start_draw(self, event):
-        if self.mask:
-            self.drawing = True
-            self.last_x, self.last_y = event.x, event.y
-
+        self.drawing = True
+        self.erasing = False
+        self.last_x, self.last_y = event.x, event.y
+    
+    def start_erase(self, event):
+        self.erasing = True
+        self.drawing = False
+        self.last_x, self.last_y = event.x, event.y
+    
+    def draw_or_erase(self, event, color):
+        if self.last_x is not None and self.last_y is not None:
+            draw = ImageDraw.Draw(self.mask)
+            r = max(self.pen_thickness // 2, 1)  # Ensure minimum radius is 1
+            x0, y0 = (event.x / self.zoom - r, event.y / self.zoom - r)
+            x1, y1 = (event.x / self.zoom + r, event.y / self.zoom + r)
+            draw.ellipse([x0, y0, x1, y1], fill=color, outline=color)
+            self.display_image()
+        self.last_x, self.last_y = event.x, event.y
+        
     def draw(self, event):
         if self.drawing and self.mask:
-            draw = ImageDraw.Draw(self.mask)
-            color = self.eraser_color if self.erasing else self.pen_color
-            # Drawing circular pen head
-            r = self.pen_thickness // 2
-            draw.ellipse([(event.x / self.zoom - r, event.y / self.zoom - r), (event.x / self.zoom + r, event.y / self.zoom + r)], fill=color, outline=color)
-            self.last_x, self.last_y = event.x, event.y
-            self.display_image()
+            self.draw_or_erase(event, self.pen_color)
+
+    def erase(self, event):
+        if self.erasing and self.mask:
+            self.draw_or_erase(event, self.eraser_color)
 
     def save_mask(self):
         if self.mask and self.mask_path:
             self.mask.resize(self.image.size, Image.Resampling.LANCZOS).save(self.mask_path)
             self.status_label.config(text="Saved!")
-            self.master.after(3000, lambda: self.status_label.config(text=""))  # Clears the message after 3 seconds
+            self.master.after(3000, lambda: self.status_label.config(text=""))
 
 root = Tk()
 my_gui = ImageMaskEditor(root)
