@@ -60,8 +60,9 @@ class ImageMaskEditor:
             btn = Button(master, text=str(size), command=lambda s=size: self.set_pen_thickness(s))
             btn.pack(side=LEFT)
 
-        color_btn = Button(master, text="Choose Pen Color", command=self.choose_pen_color)
-        color_btn.pack(side=LEFT)
+        # Big pen size button
+        big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
+        big_btn.pack(side=LEFT)
 
         save_btn = Button(master, text="Save Mask", command=self.save_mask)
         save_btn.pack(side=LEFT)
@@ -101,11 +102,6 @@ class ImageMaskEditor:
 
     def update_thickness(self, value):
         self.pen_thickness = int(value)
-
-    def choose_pen_color(self):
-        color = colorchooser.askcolor(color=self.pen_color)[1]
-        if color:
-            self.pen_color = color
 
     def zoom_image(self, event):
         if event.delta > 0:
@@ -147,10 +143,15 @@ class ImageMaskEditor:
     def draw_or_erase(self, event, color):
         if self.last_x is not None and self.last_y is not None:
             draw = ImageDraw.Draw(self.mask)
-            r = max(self.pen_thickness // 2, 1)
-            x0, y0 = (event.x / self.zoom - r, event.y / self.zoom - r)
-            x1, y1 = (event.x / self.zoom + r, event.y / self.zoom + r)
-            draw.ellipse([x0, y0, x1, y1], fill=color, outline=color)
+            if self.pen_thickness == 1:
+                # Draw a single pixel for the thinnest line
+                x, y = int(event.x / self.zoom), int(event.y / self.zoom)
+                draw.point([x, y], fill=color)
+            else:
+                r = self.pen_thickness // 2
+                x0, y0 = (event.x / self.zoom - r, event.y / self.zoom - r)
+                x1, y1 = (event.x / self.zoom + r, event.y / self.zoom + r)
+                draw.ellipse([x0, y0, x1, y1], fill=color, outline=color)
             self.display_image()
         self.last_x, self.last_y = event.x, event.y
 
