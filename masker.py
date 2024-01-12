@@ -5,6 +5,8 @@ from PIL import Image, ImageTk, ImageDraw, ImageOps
 
 class ImageMaskEditor:
     def __init__(self, master):
+        self.mask_history = []
+        
         self.master = master
         master.title("Image Mask Editor")
 
@@ -65,6 +67,8 @@ class ImageMaskEditor:
         self.thickness_scale.set(self.pen_thickness)
         self.thickness_scale.pack(side=LEFT)
 
+        master.bind("<Control-z>", self.undo_last_action)
+
         if self.image_files:
             self.current_image_index = 0
             self.load_image(0)
@@ -80,6 +84,43 @@ class ImageMaskEditor:
         eraser_btn = Button(master, text="Mode", command=self.toggle_eraser)
         eraser_btn.pack(side=LEFT)
 
+    ####
+        undo_btn = Button(master, text="Undo", command=self.undo_last_action)
+        undo_btn.pack(side=LEFT)
+
+    def save_to_history(self):
+        """Save the current mask state to the history."""
+        if self.mask:
+            self.mask_history.append(self.mask.copy())
+
+    # def undo_last_action(self):
+    #     """Undo the last drawing action."""
+    #     if self.mask_history:
+    #         self.mask = self.mask_history.pop()
+    #         self.display_image()
+    #     else:
+    #         self.status_label.config(text="Nothing to undo.")
+
+    def undo_last_action(self, event=None):  # 'event' parameter added for keyboard binding
+        """Undo the last drawing action."""
+        if self.mask_history:
+            self.mask = self.mask_history.pop()
+            self.display_image()
+        else:
+            self.status_label.config(text="Nothing to undo.")
+            
+    def start_draw(self, event):
+        self.save_to_history()  # Save the state before drawing
+        self.drawing = True
+        self.last_x, self.last_y = event.x, event.y
+        self.draw_or_erase(event, self.pen_color)
+
+    def start_erase(self, event):
+        self.save_to_history()  # Save the state before erasing
+        self.drawing = True
+        self.last_x, self.last_y = event.x, event.y
+
+    #####
     def set_pen_thickness(self, size):
         self.pen_thickness = size
         self.thickness_scale.set(size)  # Update the slider position
@@ -127,18 +168,9 @@ class ImageMaskEditor:
             self.canvas.bind("<B3-Motion>", self.erase)
             self.status_label.config(text="Mode: Draw")
 
-    def start_draw(self, event):
-        self.drawing = True
-        self.last_x, self.last_y = event.x, event.y
-        self.draw_or_erase(event, self.pen_color)
-
     def draw(self, event):
         if self.drawing and self.mask:
             self.draw_or_erase(event, self.pen_color)
-
-    def start_erase(self, event):
-        self.drawing = True
-        self.last_x, self.last_y = event.x, event.y
 
     def erase(self, event):
         if self.drawing and self.mask:
