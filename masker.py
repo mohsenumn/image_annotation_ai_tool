@@ -41,10 +41,13 @@ class ImageMaskEditor:
         self.canvas.bind("<B3-Motion>", self.erase)
         self.canvas.bind("<MouseWheel>", self.zoom_image)
 
-        prev_img_btn = Button(master, text="Previous", command=self.load_previous_image)
+        save_btn = Button(master, text="Save", command=self.save_mask)
+        save_btn.pack(side=LEFT)
+
+        prev_img_btn = Button(master, text="<<<<<", command=self.load_previous_image)
         prev_img_btn.pack(side=LEFT)
 
-        next_img_btn = Button(master, text="Next", command=self.load_next_image)
+        next_img_btn = Button(master, text=">>>>>", command=self.load_next_image)
         next_img_btn.pack(side=LEFT)
         
         jump_to_img_btn = Button(master, text="Jump to", command=self.jump_to_image)
@@ -74,11 +77,8 @@ class ImageMaskEditor:
         big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
         big_btn.pack(side=LEFT)
         
-        eraser_btn = Button(master, text="Erase", command=self.toggle_eraser)
+        eraser_btn = Button(master, text="Mode", command=self.toggle_eraser)
         eraser_btn.pack(side=LEFT)
-
-        save_btn = Button(master, text="Save", command=self.save_mask)
-        save_btn.pack(side=LEFT)
 
     def set_pen_thickness(self, size):
         self.pen_thickness = size
@@ -96,7 +96,6 @@ class ImageMaskEditor:
             rgb_path = os.path.join(self.rgb_directory, self.image_files[self.current_image_index])
             mask_path = os.path.join(self.mask_directory, self.image_files[self.current_image_index])
 
-            # Delete the files if they exist
             if os.path.exists(rgb_path):
                 os.remove(rgb_path)
             if os.path.exists(mask_path):
