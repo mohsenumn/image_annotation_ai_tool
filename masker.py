@@ -41,12 +41,12 @@ class ImageMaskEditor:
         self.canvas.bind("<B3-Motion>", self.erase)
         self.canvas.bind("<MouseWheel>", self.zoom_image)
 
-        save_btn = Button(master, text="Save", command=self.save_mask)
-        save_btn.pack(side=LEFT)
-
         prev_img_btn = Button(master, text="<<<<<", command=self.load_previous_image)
         prev_img_btn.pack(side=LEFT)
-
+        
+        save_btn = Button(master, text="Save", command=self.save_mask)
+        save_btn.pack(side=LEFT)
+        
         next_img_btn = Button(master, text=">>>>>", command=self.load_next_image)
         next_img_btn.pack(side=LEFT)
         
