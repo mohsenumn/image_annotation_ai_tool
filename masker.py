@@ -126,9 +126,11 @@ class ImageMaskEditor:
             self.canvas.bind("<ButtonPress-3>", self.start_erase)
             self.canvas.bind("<B3-Motion>", self.erase)
             self.status_label.config(text="Mode: Draw")
+
     def start_draw(self, event):
         self.drawing = True
         self.last_x, self.last_y = event.x, event.y
+        self.draw_or_erase(event, self.pen_color)
 
     def draw(self, event):
         if self.drawing and self.mask:
