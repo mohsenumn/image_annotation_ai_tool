@@ -81,8 +81,8 @@ class ImageMaskEditor:
         big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
         big_btn.pack(side=LEFT)
         
-        eraser_btn = Button(master, text="Mode", command=self.toggle_eraser)
-        eraser_btn.pack(side=LEFT)
+        self.eraser_btn = Button(master, text="Mode:Drawing", command=self.toggle_eraser)
+        self.eraser_btn.pack(side=LEFT)
 
     ####
         undo_btn = Button(master, text="Undo", command=self.undo_last_action)
@@ -92,14 +92,6 @@ class ImageMaskEditor:
         """Save the current mask state to the history."""
         if self.mask:
             self.mask_history.append(self.mask.copy())
-
-    # def undo_last_action(self):
-    #     """Undo the last drawing action."""
-    #     if self.mask_history:
-    #         self.mask = self.mask_history.pop()
-    #         self.display_image()
-    #     else:
-    #         self.status_label.config(text="Nothing to undo.")
 
     def undo_last_action(self, event=None):  # 'event' parameter added for keyboard binding
         """Undo the last drawing action."""
@@ -159,6 +151,7 @@ class ImageMaskEditor:
             self.canvas.bind("<B1-Motion>", self.erase)
             self.canvas.bind("<ButtonPress-3>", self.start_draw)
             self.canvas.bind("<B3-Motion>", self.draw)
+            self.eraser_btn.config(text="Mode:Eraseing")
             self.status_label.config(text="Mode: Erase")
         else:
             # In Draw mode, left click to draw, right click to erase
@@ -166,6 +159,7 @@ class ImageMaskEditor:
             self.canvas.bind("<B1-Motion>", self.draw)
             self.canvas.bind("<ButtonPress-3>", self.start_erase)
             self.canvas.bind("<B3-Motion>", self.erase)
+            self.eraser_btn.config(text="Mode:Drawing")
             self.status_label.config(text="Mode: Draw")
 
     def draw(self, event):
