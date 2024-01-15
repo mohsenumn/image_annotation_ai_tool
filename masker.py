@@ -63,7 +63,7 @@ class ImageMaskEditor:
         opacity_scale.pack(side=LEFT)
 
                 # Thickness Scale
-        self.thickness_scale = Scale(master, from_=1, to=20, orient=HORIZONTAL, label="Pen Thickness", command=self.update_thickness)
+        self.thickness_scale = Scale(master, from_=1, to=40, orient=HORIZONTAL, label="Pen Thickness", command=self.update_thickness)
         self.thickness_scale.set(self.pen_thickness)
         self.thickness_scale.pack(side=LEFT)
 
@@ -74,12 +74,12 @@ class ImageMaskEditor:
             self.load_image(0)
             
         # Pen size selection buttons
-        for size in [1, 3, 5, 10, 20]:
+        for size in [1, 3, 5, 10, 20, 40]:
             btn = Button(master, text=str(size), command=lambda s=size: self.set_pen_thickness(s))
             btn.pack(side=LEFT)
 
-        big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
-        big_btn.pack(side=LEFT)
+        # big_btn = Button(master, text="BIG", command=lambda: self.set_pen_thickness(40))
+        # big_btn.pack(side=LEFT)
         
         self.eraser_btn = Button(master, text="Mode:Drawing", command=self.toggle_eraser)
         self.eraser_btn.pack(side=LEFT)
@@ -102,7 +102,7 @@ class ImageMaskEditor:
             self.status_label.config(text="Nothing to undo.")
             
     def start_draw(self, event):
-        self.save_to_history()  # Save the state before drawing
+        self.save_to_history()  
         self.drawing = True
         self.last_x, self.last_y = event.x, event.y
         self.draw_or_erase(event, self.pen_color)
@@ -111,6 +111,7 @@ class ImageMaskEditor:
         self.save_to_history()  # Save the state before erasing
         self.drawing = True
         self.last_x, self.last_y = event.x, event.y
+        self.draw_or_erase(event, self.eraser_color)
 
     #####
     def set_pen_thickness(self, size):
